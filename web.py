@@ -93,33 +93,18 @@ def config():
 @app.route('/')
 def fullmap():
     pokemon_id = request.args.get('pokemon_id')
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
     return render_template(
         'example_fullmap.html',
         key=GOOGLEMAPS_KEY,
-        fullmap=get_map(pokemon_id=pokemon_id),
+        fullmap=get_map(pokemon_id=pokemon_id, lat=lat, lon=lon),
         auto_refresh=auto_refresh
     )
-
-
-@app.route('/next_loc')
-def next_loc():
-    global NEXT_LAT, NEXT_LONG
-
-    location_name = flask.request.args.get('name', '')
-    if not location_name:
-        return 'no location_name'
-    # TODO:
-    # coords = guess_coords(location_name)
-    # NEXT_LAT = float(coords[0])
-    # NEXT_LONG = float(coords[1])
-    # print('[+] Saved next location as %s,%s' % (NEXT_LAT, NEXT_LONG))
-    return 'ok'
-
 
 @app.route('/gps')
 def next_loc_gps():
     return render_template('nextloc_js.html')
-
 
 def get_pokemarkers(pokemon_id=None):
     markers = []
@@ -177,14 +162,18 @@ def get_pokemarkers(pokemon_id=None):
     return markers
 
 
-def get_map(pokemon_id=None):
+def get_map(pokemon_id=None, lat=None, lon=None):
+    if lat:
+        zoom = '18'
+    else:
+        zoom = '15'
     fullmap = Map(
         identifier="fullmap2",
         style='height:100%;width:100%;top:0;left:0;position:absolute;z-index:200;',
-        lat=origin_lat,
-        lng=origin_lon,
+        lat=lat or origin_lat,
+        lng=lon or origin_lon,
         markers=get_pokemarkers(pokemon_id=pokemon_id),
-        zoom='15',
+        zoom=zoom,
     )
     return fullmap
 
