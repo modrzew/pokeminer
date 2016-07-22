@@ -69,6 +69,12 @@ session = db.Session()
 db.import_pokemon_from_json(session, 'en')
 ```
 
+### Example Query
+Get all spawns on the minute grouped on locations and pokemon
+```sql
+SELECT MINUTE(FROM_UNIXTIME(normalized_timestamp)), p.name, lat, lon, s.pokemon_id, count(*) as cnt from sightings as s JOIN pokemon as p on p.pokemon_id = s.pokemon_id GROUP BY lat, lon, pokemon_id, MINUTE(FROM_UNIXTIME(normalized_timestamp)) order by cnt;
+```
+
 ## License
 
 See [LICENSE](LICENSE).
