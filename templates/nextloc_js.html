@@ -3,17 +3,10 @@
     $(function () {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function (pos) {
-                $('h3').text('Location obtained, updating...');
-                var promise = $.get('/next_loc?lat='+pos.coords.latitude+'&lon='+pos.coords.longitude);
-                promise.done(function () {
-                    $('h3').text('Updated, redirecting...');
-                    setTimeout(function () {
-                        window.location.href = '/';
-                    }, 1000);
-                });
-                promise.fail(function () {
-                    $('h3').text('Error when calling /next_loc');
-                });
+                $('h3').text('Updated, redirecting...');
+                setTimeout(function () {
+                    window.location.href = '/?lat='+pos.coords.latitude+'&lon='+pos.coords.longitude;
+                }, 1000);
             }, function (error) {
                 alert('Error: ' + error);
             }, {

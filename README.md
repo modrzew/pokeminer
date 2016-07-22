@@ -47,11 +47,12 @@ python web.py --host 127.0.0.1 --port 8000
 You need to have at least *rows* x *columns* accounts. So for below example, you need to have 20 accounts.
 
 ```py
+# MySQL may need ?charset=utf8&use_unicode=0 in the end
 DB_ENGINE = 'sqlite:///db.sqlite'  # anything SQLAlchemy accepts
 MAP_START = (12.3456, 14.5)  # top left corner
 MAP_END = (13.4567, 15.321)  # bottom right corner
 GRID = (4, 5)  # row, column
-
+GOOGLEMAPS_KEY = 'lol-monkey-what-a-key'
 ACCOUNTS = [
     # username, password, service (google/ptc)
     ('trainer1', 'secret', 'google'),
@@ -68,6 +69,14 @@ Run python REPL and:
 ```python
 import db
 db.Base.metadata.create_all(db.get_engine())
+session = db.Session()
+db.import_pokemon_from_json(session, 'en')
+```
+
+### Example Query
+Get all spawns on the minute grouped on locations and pokemon
+```sql
+SELECT MINUTE(FROM_UNIXTIME(normalized_timestamp)), p.name, lat, lon, s.pokemon_id, count(*) as cnt from sightings as s JOIN pokemon as p on p.pokemon_id = s.pokemon_id GROUP BY lat, lon, pokemon_id, MINUTE(FROM_UNIXTIME(normalized_timestamp)) order by cnt;
 ```
 
 ## License

@@ -6,7 +6,7 @@ import json
 
 import requests
 import flask
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_googlemaps import GoogleMaps
 from flask_googlemaps import Map
 from flask_googlemaps import icons
@@ -24,8 +24,10 @@ with open('credentials.json') as f:
 with open('locales/pokemon.en.json') as f:
     pokemon_names = json.load(f)
 
-GOOGLEMAPS_KEY = credentials.get('gmaps_key', None)
-
+try:
+    GOOGLEMAPS_KEY = app_config.GOOGLEMAPS_KEY
+except:
+    print('Please set your GOOGLEMAPS_KEY in the config.json file')
 DEBUG = True
 origin_lat = (app_config.MAP_START[0] + app_config.MAP_END[0]) / 2.0
 origin_lon = (app_config.MAP_START[1] + app_config.MAP_END[1]) / 2.0
@@ -68,7 +70,8 @@ app = create_app()
 @app.route('/data')
 def data():
     """ Gets all the PokeMarkers via REST """
-    return json.dumps(get_pokemarkers())
+    pokemon_id = request.args.get('pokemon_id')
+    return json.dumps(get_pokemarkers(pokemon_id=pokemon_id))
 
 
 @app.route('/raw_data')
@@ -91,35 +94,21 @@ def config():
 
 @app.route('/')
 def fullmap():
+    pokemon_id = request.args.get('pokemon_id')
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
     return render_template(
         'example_fullmap.html',
         key=GOOGLEMAPS_KEY,
-        fullmap=get_map(),
+        fullmap=get_map(pokemon_id=pokemon_id, lat=lat, lon=lon),
         auto_refresh=auto_refresh
     )
-
-
-@app.route('/next_loc')
-def next_loc():
-    global NEXT_LAT, NEXT_LONG
-
-    location_name = flask.request.args.get('name', '')
-    if not location_name:
-        return 'no location_name'
-    # TODO:
-    # coords = guess_coords(location_name)
-    # NEXT_LAT = float(coords[0])
-    # NEXT_LONG = float(coords[1])
-    # print('[+] Saved next location as %s,%s' % (NEXT_LAT, NEXT_LONG))
-    return 'ok'
-
 
 @app.route('/gps')
 def next_loc_gps():
     return render_template('nextloc_js.html')
 
-
-def get_pokemarkers():
+def get_pokemarkers(pokemon_id=None):
     markers = []
 
     workers = app_config.GRID[0] * app_config.GRID[1]
@@ -136,7 +125,7 @@ def get_pokemarkers():
         })
 
     session = db.Session()
-    pokemons = db.get_sightings(session)
+    pokemons = db.get_sightings(session, pokemon_id=pokemon_id)
     session.close()
 
     for pokemon in pokemons:
@@ -148,6 +137,7 @@ def get_pokemarkers():
 <div><b>{name}</b><span> - </span><small><a href='http://www.pokemon.com/us/pokedex/{id}' target='_blank' title='View in Pokedex'>#{id}</a></small></div>
 <div>Disappears at - {disappear_time_formatted} <span class='label-countdown' disappears-at='{disappear_time}'></span></div>
 <div><a href='https://www.google.com/maps/dir/Current+Location/{lat},{lng}' target='_blank' title='View in Maps'>Get Directions</a></div>
+<div><a href='/?pokemon_id={id}'>Show all of <b>{name}</b></a></div>
 '''
         label = LABEL_TMPL.format(
             id=pokemon.pokemon_id,
@@ -174,14 +164,18 @@ def get_pokemarkers():
     return markers
 
 
-def get_map():
+def get_map(pokemon_id=None, lat=None, lon=None):
+    if lat:
+        zoom = '18'
+    else:
+        zoom = '15'
     fullmap = Map(
         identifier="fullmap2",
         style='height:100%;width:100%;top:0;left:0;position:absolute;z-index:200;',
-        lat=origin_lat,
-        lng=origin_lon,
-        markers=get_pokemarkers(),
-        zoom='15',
+        lat=lat or origin_lat,
+        lng=lon or origin_lon,
+        markers=get_pokemarkers(pokemon_id=pokemon_id),
+        zoom=zoom,
     )
     return fullmap
 

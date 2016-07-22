@@ -1,4 +1,6 @@
 *.pyc
 .idea
+.venv
+*.swp
 config.py
 db.sqlite
