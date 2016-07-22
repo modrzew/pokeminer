@@ -43,11 +43,12 @@ python web.py --host 127.0.0.1 --port 8000
 You need to have at least *rows* x *columns* accounts. So for below example, you need to have 20 accounts.
 
 ```py
+# MySQL may need ?charset=utf8&use_unicode=0 in the end
 DB_ENGINE = 'sqlite:///db.sqlite'  # anything SQLAlchemy accepts
 MAP_START = (12.3456, 14.5)  # top left corner
 MAP_END = (13.4567, 15.321)  # bottom right corner
 GRID = (4, 5)  # row, column
-
+GOOGLEMAPS_KEY = 'lol-monkey-what-a-key'
 ACCOUNTS = [
     # username, password, service (google/ptc)
     ('trainer1', 'secret', 'google'),
@@ -64,6 +65,8 @@ Run python REPL and:
 ```python
 import db
 db.Base.metadata.create_all(db.get_engine())
+session = db.Session()
+db.import_pokemon_from_json(session, 'en')
 ```
 
 ## License

@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
-
+import json
 
 try:
     import config
@@ -29,6 +29,13 @@ class Sighting(Base):
     normalized_timestamp = Column(Integer)
     lat = Column(String(16))
     lon = Column(String(16))
+
+
+class Pokemon(Base):
+    __tablename__ = 'pokemon'
+
+    pokemon_id = Column(Integer, primary_key=True)
+    name = Column(String(128))
 
 
 Session = sessionmaker(bind=get_engine())
@@ -59,6 +66,22 @@ def add_sighting(session, spawn_id, pokemon):
     if existing:
         return
     session.add(obj)
+
+
+def import_pokemon_json(session, locale):
+    try:
+        json_data = open('locales/pokemon.%s.json' % locale)
+        data = json.load(json_data)
+    except Exception as ex:
+        print('Failed to import pokemon.%s.json' % (locale,))
+        print(ex)
+    for pokemon_id in data:
+        try:
+            session.merge(Pokemon(pokemon_id=pokemon_id,
+                          name=data[pokemon_id]))
+            session.commit()
+        except Exception as ex:
+            print ex, pokemon_id, data[pokemon_id]
 
 
 def get_sightings(session, pokemon_id=None):

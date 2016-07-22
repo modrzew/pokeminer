@@ -24,8 +24,10 @@ with open('credentials.json') as f:
 with open('locales/pokemon.en.json') as f:
     pokemon_names = json.load(f)
 
-GOOGLEMAPS_KEY = credentials.get('gmaps_key', None)
-
+try:
+    GOOGLEMAPS_KEY = app_config.GOOGLEMAPS_KEY
+except:
+    print('Please set your GOOGLEMAPS_KEY in the config.json file')
 DEBUG = True
 origin_lat = (app_config.MAP_START[0] + app_config.MAP_END[0]) / 2.0
 origin_lon = (app_config.MAP_START[1] + app_config.MAP_END[1]) / 2.0
