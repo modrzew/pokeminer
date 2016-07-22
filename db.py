@@ -61,7 +61,12 @@ def add_sighting(session, spawn_id, pokemon):
     session.add(obj)
 
 
-def get_sightings(session):
-    return session.query(Sighting) \
-        .filter(Sighting.expire_timestamp > time.time()) \
-        .all()
+def get_sightings(session, pokemon_id=None):
+    if not pokemon_id:
+        return session.query(Sighting) \
+            .filter(Sighting.expire_timestamp > time.time()) \
+            .all()
+    else:
+       return session.query(Sighting) \
+           .filter(Sighting.pokemon_id == pokemon_id) \
+           .all()
