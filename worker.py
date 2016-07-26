@@ -61,6 +61,7 @@ pokemons = {}
 workers = {}
 local_data = threading.local()
 
+lock = threading.Lock()
 
 class CannotGetProfile(Exception):
     """As name says, raised when login service is unreachable
@@ -494,7 +495,11 @@ class Slave(threading.Thread):
                 db.add_sighting(session, spawn_id, pokemon)
                 self.seen += 1
             logger.info('Point processed, %d Pokemons seen!', len(add_to_db))
+            
+            lock.acquire()
             session.commit()
+            lock.release()
+            
             # Clear error code and let know that there are Pokemon
             if self.error_code and self.seen:
                 self.error_code = None
