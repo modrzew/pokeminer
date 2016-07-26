@@ -69,7 +69,7 @@ def add_sighting(session, spawn_id, pokemon):
 
 
 def get_sightings(session):
-    query = session.query(Sightinsessg) \
+    query = session.query(Sighting) \
         .filter(Sighting.expire_timestamp > time.time())
     trash_list = getattr(config, 'TRASH_IDS', None)
     if trash_list:
