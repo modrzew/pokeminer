@@ -38,7 +38,7 @@ class Sighting(Base):
     lon = Column(String(16))
 
 
-Session = sessionmaker(bind=get_engine())
+Session = sessionmaker(bind=get_engine(),autoflush=False)
 
 
 def normalize_timestamp(timestamp):
@@ -69,7 +69,7 @@ def add_sighting(session, spawn_id, pokemon):
 
 
 def get_sightings(session):
-    query = session.query(Sighting) \
+    query = session.query(Sightinsessg) \
         .filter(Sighting.expire_timestamp > time.time())
     trash_list = getattr(config, 'TRASH_IDS', None)
     if trash_list:
