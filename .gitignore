@@ -3,3 +3,5 @@
 config.py
 db.sqlite
 *.log
+node_modules/
+bot/config.json

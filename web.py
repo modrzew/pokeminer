@@ -64,6 +64,10 @@ def data():
     """Gets all the PokeMarkers via REST"""
     return json.dumps(get_pokemarkers())
 
+@app.route('/discord')
+def discord():
+    """Gets all the PokeMarkers via REST"""
+    return json.dumps(get_pokeDiscord())
 
 @app.route('/config')
 def config():
@@ -86,6 +90,31 @@ def fullmap():
         auto_refresh=AUTO_REFRESH * 1000
     )
 
+def get_pokeDiscord():
+    data = []
+
+    # Get the Pokemon out of the Database
+    session = db.Session()
+    pokemons = db.get_sightings(session)
+    session.close()
+
+    for pokemon in pokemons:
+        name = pokemon_names[str(pokemon.pokemon_id)]
+        datestr = datetime.fromtimestamp(pokemon.expire_timestamp)
+        dateoutput = datestr.strftime("%H:%M:%S")
+
+        data.append({
+            'type': 'pokemon',
+            'name': name,
+            'key': '{}-{}'.format(pokemon.pokemon_id, pokemon.spawn_id),
+            'disappear_time': pokemon.expire_timestamp,
+            'icon': 'static/icons/%d.png' % pokemon.pokemon_id,
+            'lat': pokemon.lat,
+            'lng': pokemon.lon,
+            'pokemon_id': pokemon.pokemon_id
+        })
+
+    return data
 
 def get_pokemarkers():
     markers = []

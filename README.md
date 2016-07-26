@@ -84,6 +84,20 @@ import db
 db.Base.metadata.create_all(db.get_engine())
 ```
 
+### If you want to use Discord Notification
+
+![Discord Message](static/discord.png)
+
+```javascript
+npm install discord.js
+npm install request
+```
+
+Running the Bot Application
+```javascript
+node data.js
+```
+
 ## License
 
 See [LICENSE](LICENSE).
