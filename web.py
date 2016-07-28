@@ -105,7 +105,29 @@ def get_pokemarkers():
 
     session = db.Session()
     pokemons = db.get_sightings(session)
+    pokestops = db.get_all_pokestops(session)
+    gyms = db.get_all_gyms(session)
     session.close()
+
+    for gym in gyms:
+        markers.append({
+            'type': 'pokestop',
+            'key': 'pokestop-{}'.format(gym.id),
+            'icon': 'static/forts/Gym.png',
+            'lat': gym.lat,
+            'lng': gym.lon,
+            'infobox': 'Gym'
+        })
+
+    for pokestop in pokestops:
+        markers.append({
+            'type': 'pokestop',
+            'key': 'pokestop-{}'.format(pokestop.id),
+            'icon': 'static/forts/Pstop.png',
+            'lat': pokestop.lat,
+            'lng': pokestop.lon,
+            'infobox': 'Pokestop'
+        })
 
     for pokemon in pokemons:
         name = pokemon_names[str(pokemon.pokemon_id)]
@@ -219,6 +241,21 @@ def sighting_to_marker(sighting):
         'lon': sighting.lon,
     }
 
+@app.route('/api/pokestops')
+def pokestop():
+    pokestops_json = []
+    session = db.Session()
+    pokestops = db.get_all_pokestops(session)
+    session.close()
+
+    for pokestop in pokestops:
+        pokestops_json.append({
+            'lat': pokestop.lat,
+            'lng': pokestop.lon,
+            'id': pokestop.id
+        })
+
+    return json.dumps({'pokestops': pokestops_json})
 
 @app.route('/report/heatmap')
 def report_heatmap():
