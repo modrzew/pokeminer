@@ -1,4 +1,6 @@
 import math
+from geopy import distance
+from geopy import Point
 
 import config
 
@@ -9,6 +11,21 @@ def get_map_center():
     lon = (config.MAP_END[1] + config.MAP_START[1]) / 2
     return lat, lon
 
+def get_scan_area():
+    """Returns the square kilometers for configured scan area"""
+    lat1 = config.MAP_START[0]
+    lat2 = config.MAP_END[0]
+    lon1 = config.MAP_START[1]
+    lon2 = config.MAP_END[1]
+    p1 = Point(lat1, lon1)
+    p2 = Point(lat1, lon2)
+    p3 = Point(lat1, lon1)
+    p4 = Point(lat2, lon1)
+
+    width = distance.distance(p1,p2).kilometers
+    height = distance.distance(p3,p4).kilometers
+    area = int(width * height)
+    return area
 
 def get_start_coords(worker_no):
     """Returns center of square for given worker"""
@@ -59,4 +76,17 @@ def get_points_per_worker():
             grid_col = int(map_col / float(total_columns) * config.GRID[1])
             worker_no = grid_row * config.GRID[1] + grid_col
             points[worker_no].append((lat, lon))
+    points = [
+        sort_points_for_worker(p, i)
+        for i, p in enumerate(points)
+    ]
     return points
+
+
+def sort_points_for_worker(points, worker_no):
+    center = get_start_coords(worker_no)
+    return sorted(points, key=lambda p: get_distance(p, center))
+
+
+def get_distance(p1, p2):
+    return math.sqrt(pow(p1[0] - p2[0], 2) + pow(p1[1] - p2[1], 2))
