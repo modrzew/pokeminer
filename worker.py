@@ -549,9 +549,13 @@ def process_step(
     set_location_coords(step_lat, step_long, 0)
     visible = []
 
+    forts = []
     for hh in hs:
         try:
             for cell in hh.cells:
+                for fort in cell.Fort:
+                    forts.append(fort)
+
                 for wild in cell.WildPokemon:
                     hash = wild.SpawnPointId + ':' \
                         + str(wild.pokemon.PokemonId)
@@ -572,6 +576,15 @@ def process_step(
             'id': poke.pokemon.PokemonId,
         }
         add_to_db.append(poke.SpawnPointId)
+
+    add_forts_to_db(forts)
+
+def add_forts_to_db(forts):
+    session = db.Session()
+    for fort in forts:
+        db.add_fort(session, fort)
+    session.commit()
+    session.close()
 
 
 def get_status_message(workers, count, start_time, points_stats):

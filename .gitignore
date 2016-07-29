@@ -1,5 +1,5 @@
 *.pyc
 .idea
-config.py
 db.sqlite
 *.log
+.DS_Store

@@ -105,7 +105,31 @@ def get_pokemarkers():
 
     session = db.Session()
     pokemons = db.get_sightings(session)
+    pokestops = db.get_all_pokestops(session)
+    gyms = db.get_all_gyms(session)
     session.close()
+
+    print "t"
+    
+    for gym in gyms:
+        markers.append({
+            'type': 'pokestop',
+            'key': 'pokestop-{}'.format(gym.id),
+            'icon': 'static/forts/Gym.png',
+            'lat': gym.lat,
+            'lng': gym.lon,
+            'infobox': 'Gym'
+        })
+
+    for pokestop in pokestops:
+        markers.append({
+            'type': 'pokestop',
+            'key': 'pokestop-{}'.format(pokestop.id),
+            'icon': 'static/forts/Pstop.png',
+            'lat': pokestop.lat,
+            'lng': pokestop.lon,
+            'infobox': 'Pokestop'
+        })
 
     for pokemon in pokemons:
         name = pokemon_names[str(pokemon.pokemon_id)]
@@ -219,6 +243,30 @@ def sighting_to_marker(sighting):
         'lon': sighting.lon,
     }
 
+@app.route('/api/pokestops')
+def pokestop():
+    pokestops_json = []
+    session = db.Session()
+    pokestops = db.get_all_pokestops(session)
+    session.close()
+    args = request.args
+    for pokestop in pokestops:
+        if not args or in_area(pokestop, **args):
+            pokestops_json.append({
+                'lat': pokestop.lat,
+                'lng': pokestop.lon,
+                'id': pokestop.id
+            })
+
+    return json.dumps({'pokestops': pokestops_json})
+
+
+def in_area(pokestop, **kwargs):
+    min_lat = kwargs.get('min_lat')[0]
+    max_lat = kwargs.get('max_lng')[0]
+    min_lng = kwargs.get('min_lat')[0]
+    max_lng = kwargs.get('max_lng')[0]
+    return min_lat <= pokestop.lat and max_lat >= pokestop.lon and min_lng <= pokestop.lat and max_lng >= pokestop.lon
 
 @app.route('/report/heatmap')
 def report_heatmap():
