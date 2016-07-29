@@ -38,7 +38,7 @@ class Sighting(Base):
     lon = Column(String(16))
 
 
-Session = sessionmaker(bind=get_engine())
+Session = sessionmaker(bind=get_engine(),autoflush=False)
 
 
 def normalize_timestamp(timestamp):
