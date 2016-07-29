@@ -5,7 +5,7 @@ import time
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.sql import not_
 
 
@@ -18,6 +18,8 @@ try:
     DB_ENGINE = config.DB_ENGINE
 except ImportError, AttributeError:
     DB_ENGINE = 'sqlite:///db.sqlite'
+
+
 
 
 def get_engine():
@@ -37,6 +39,15 @@ class Sighting(Base):
     lat = Column(String(16))
     lon = Column(String(16))
 
+class Fort(Base):
+    __tablename__ = 'forts'
+
+    id = Column(String, primary_key=True)
+    lat = Column(String(16))
+    lon = Column(String(16))
+    fort_type = Column(Integer)
+    enabled = Column(Boolean)
+
 
 Session = sessionmaker(bind=get_engine())
 
@@ -51,8 +62,8 @@ def add_sighting(session, spawn_id, pokemon):
         spawn_id=spawn_id,
         expire_timestamp=pokemon['disappear_time'],
         normalized_timestamp=normalize_timestamp(pokemon['disappear_time']),
-        lat=pokemon['lat'],
-        lon=pokemon['lng'],
+        lat=str(pokemon['lat']),
+        lon=str(pokemon['lng']),
     )
     # Check if there isn't the same entry already
     existing = session.query(Sighting) \
@@ -158,3 +169,30 @@ def get_all_sightings(session, pokemon_ids):
         .filter(Sighting.pokemon_id.in_(pokemon_ids)) \
         .all()
     return query
+
+def get_all_pokestops(session):
+    query = session.query(Fort).filter(Fort.enabled == True, Fort.fort_type == 1).all()
+    return query
+
+def get_all_gyms(session):
+    query = session.query(Fort).filter(Fort.enabled == True, Fort.fort_type == 0).all()
+    return query
+
+# session = db.session
+# fort = Fort Protobuff object
+def add_fort(session, fort):
+    obj = Fort(
+        id=fort.FortId,
+        lat=fort.Latitude,
+        lon=fort.Longitude,
+        fort_type=fort.FortType,
+        enabled=fort.Enabled
+    )
+    # Check if there isn't the same entry already
+    existing = session.query(Fort) \
+        .filter(Fort.id == obj.id) \
+        .first()
+    if existing:
+        return
+
+    session.add(obj)
