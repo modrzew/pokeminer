@@ -76,6 +76,9 @@ TRASH_IDS = [16, 19, 41, 96]
 STAGE2 = [
     3, 6, 9, 12, 15, 18, 31, 34, 45, 62, 65, 68, 71, 76, 94, 139, 141, 149
 ]
+
+# Show or hide worker markers on the map
+HIDE_WORKER_MARKERS = False
 ```
 
 ### Setting up database
