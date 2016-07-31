@@ -5,7 +5,7 @@ import time
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Index
 from sqlalchemy.sql import not_
 
 
@@ -84,6 +84,7 @@ class Sighting(Base):
     normalized_timestamp = Column(Integer)
     lat = Column(String(16))
     lon = Column(String(16))
+    Index('pid_expts', pokemon_id, expire_timestamp)
 
 
 Session = sessionmaker(bind=get_engine())
