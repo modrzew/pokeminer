@@ -149,7 +149,7 @@ def get_worker_markers():
     points = utils.get_points_per_worker()
     # Worker start points
     for worker_no, worker_points in enumerate(points):
-        coords = utils.get_start_coords(worker_no)
+        coords = utils.get_start_coords(worker_points)
         markers.append({
             'icon': icons.dots.green,
             'lat': coords[0],
