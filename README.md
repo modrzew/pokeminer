@@ -71,6 +71,51 @@ Here's how the overall report looks like:
 
 [![](http://i.imgur.com/Yy4VTq0m.jpg)](http://i.imgur.com/Yy4VTq0.jpg)
 
+## Configuration
+
+You need to have at least *rows* x *columns* accounts. So for below example, you need to have 20 accounts.
+
+```py
+# coding: utf-8
+from datetime import datetime
+
+DB_ENGINE = 'sqlite:///db.sqlite'  # anything SQLAlchemy accepts, 
+#if you want to use mySQL then it should be formatted as follows: 'mysql+pymysql://[user]:[password]localhost/[db name]'
+AREA_NAME = 'area' # name of the area you are defining
+MAP_START = (lat, lng)  # top left corner
+MAP_END = (lat, lng)  # bottom right corner
+GRID = (rows, columns)  # row, column
+SCAN_RADIUS = 70 # scan radius in meters
+SLEEP = (MIN, MAX) # minimum and maximum time between scans of each point, need this due to api request changes
+GOOGLE_API_KEY = KEY # this should be set to your personal google api key that includes the javascript googlemaps api
+
+CYCLES_PER_WORKER = 3 #Number of cycles for a worker to run before sleeping
+
+#The Accounts you want to use
+ACCOUNTS = [
+    # username, password, service (google/ptc)
+    ('trainer1', '[password for trainer1]', 'google'),
+    ('trainer2', '[password for trainer2]', 'ptc'),
+    ('trainer3', '[password for trainer3]', 'google'),
+    # ...
+]
+
+#Option to Hide the Workers Markers
+HIDE_WORKER_MARKERS = True
+
+# Trash Pokemon won't be shown on the live map.
+# Their data will still be collected to the database.
+TRASH_IDS = [16, 19, 41, 96]
+
+# List of stage 2 & rare evolutions to show in the report
+STAGE2 = [3, 6, 9, 12, 15, 18, 31, 34, 45, 62, 65, 68, 71, 76, 94, 139, 141, 149]
+
+#Date to run the report from, goes from this date to current.
+REPORT_SINCE = datetime(2016, 7, 29)
+
+
+```
+
 ## License
 
 See [LICENSE](LICENSE).

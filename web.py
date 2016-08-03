@@ -23,6 +23,7 @@ REQUIRED_SETTINGS = (
     'AREA_NAME',
     'REPORT_SINCE',
     'SCAN_RADIUS',
+    'GOOGLE_API_KEY'
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(app_config, setting_name):
@@ -36,7 +37,7 @@ with open('locales/pokemon.en.json') as f:
     pokemon_names = json.load(f)
 
 
-GOOGLEMAPS_KEY = credentials.get('gmaps_key', None)
+GOOGLEMAPS_KEY = app_config.GOOGLE_API_KEY
 AUTO_REFRESH = 45  # refresh map every X s
 
 
@@ -175,10 +176,12 @@ def get_worker_markers():
 def get_map():
     map_center = utils.get_map_center()
     fullmap = Map(
-        identifier='fullmap2',
+        identifier='fullmap',
         style='height:100%;width:100%;top:0;left:0;position:absolute;z-index:200;',
         lat=map_center[0],
         lng=map_center[1],
+        offsetWidth=0,
+        offsetHeight=0,
         markers=[],  # will be fetched by browser
         zoom='15',
     )
