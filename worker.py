@@ -81,6 +81,7 @@ class Slave(threading.Thread):
         center = self.points[0]
         self.api = PGoApi()
         self.api.set_position(center[0], center[1], 100)  # lat, lon, alt
+        self.api.activate_signature(config.ENCRYPT)
 
     def run(self):
         """Wrapper for self.main - runs it a few times before restarting
