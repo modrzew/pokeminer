@@ -237,6 +237,11 @@ class Slave(threading.Thread):
         self.error_code = 'KILLED'
         self.running = False
 
+    def disable(self):
+        """Marks worker as disabled"""
+        self.error_code = 'DISABLED'
+        self.running = False
+
 
 def get_status_message(workers, count, start_time, points_stats):
     messages = [workers[i].status.ljust(20) for i in range(count)]
@@ -255,7 +260,7 @@ def get_status_message(workers, count, start_time, points_stats):
         '',
     ]
     previous = 0
-    for i in range(4, count + 4, 4):
+    for i in range(5, count + 5, 5):
         output.append('\t'.join(messages[previous:i]))
         previous = i
     return '\n'.join(output)
@@ -268,8 +273,11 @@ def start_worker(worker_no, points):
         worker_no=worker_no,
         points=points
     )
-    worker.daemon = True
-    worker.start()
+    if (not hasattr(config, 'DISABLE_MARKERS') or worker_no not in config.DISABLE_MARKERS):
+        worker.daemon = True
+        worker.start()
+    else:
+        worker.disable()
     workers[worker_no] = worker
 
 

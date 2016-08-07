@@ -151,24 +151,37 @@ def get_worker_markers():
     # Worker start points
     for worker_no, worker_points in enumerate(points):
         coords = utils.get_start_coords(worker_no)
-        markers.append({
-            'icon': icons.dots.green,
-            'lat': coords[0],
-            'lng': coords[1],
-            'infobox': 'Worker %d' % worker_no,
-            'type': 'custom',
-            'subtype': 'worker',
-            'key': 'start-position-%d' % worker_no,
-            'disappear_time': -1
-        })
-        # Circles
-        for i, point in enumerate(worker_points):
+        if (not hasattr(app_config, 'DISABLE_MARKERS') or  worker_no not in app_config.DISABLE_MARKERS):
             markers.append({
-                'lat': point[0],
-                'lng': point[1],
-                'infobox': 'Worker %d point %d' % (worker_no, i),
-                'subtype': 'point',
+                'icon': icons.dots.green,
+                'lat': coords[0],
+                'lng': coords[1],
+                'infobox': 'Worker %d' % worker_no,
+                'type': 'custom',
+                'subtype': 'worker',
+                'key': 'start-position-%d' % worker_no,
+                'disappear_time': -1
             })
+        else:
+            markers.append({
+                'icon': icons.dots.red,
+                'lat': coords[0],
+                'lng': coords[1],
+                'infobox': 'Worker %d <br /> DISABLED' % worker_no,
+                'type': 'custom',
+                'subtype': 'worker',
+                'key': 'start-position-%d' % worker_no,
+                'disappear_time': -1
+            })
+        if (not hasattr(app_config, 'ENABLE_CIRCLES') or  worker_no in app_config.ENABLE_CIRCLES):
+            # Circles
+            for i, point in enumerate(worker_points):
+                markers.append({
+                    'lat': point[0],
+                    'lng': point[1],
+                    'infobox': 'Worker %d point %d' % (worker_no, i),
+                    'subtype': 'point',
+                })
     return markers
 
 
