@@ -20,7 +20,7 @@
             {% endfor %}
         </div>
 
-        <p>Out of {{ total_count }} gyms in Wrocław, {{ team_names[order[0]] }} owns <span class="label label-{{ styles[order[0]] }}">{{ count[order[0]] }} ({{ '%0.1f' % percentages[order[0]] }}%)</span> of them. They have <span class="label label-{{ styles[order[0]] }}">{{ prestige[order[0]] }} ({{ '%0.1f' % prestige_percent[order[0]] }}%) prestige</span> amassed right now.</p>
+        <p>Out of {{ total_count }} gyms in {{ area_name }}, {{ team_names[order[0]] }} owns <span class="label label-{{ styles[order[0]] }}">{{ count[order[0]] }} ({{ '%0.1f' % percentages[order[0]] }}%)</span> of them. They have <span class="label label-{{ styles[order[0]] }}">{{ prestige[order[0]] }} ({{ '%0.1f' % prestige_percent[order[0]] }}%) prestige</span> amassed right now.</p>
         <p>Next in line is {{ team_names[order[1]] }}, which owns <span class="label label-{{ styles[order[1]] }}">{{ count[order[1]] }} ({{ '%0.1f' % percentages[order[1]] }}%)</span> Gyms right now. They accumulated <span class="label label-{{ styles[order[1]] }}">{{ prestige[order[1]] }} ({{ '%0.1f' % prestige_percent[order[1]] }}%) prestige</span>.</p>
         <p>And the loser is {{ team_names[order[2]] }} with just <span class="label label-{{ styles[order[2]] }}">{{ count[order[2]] }} ({{ '%0.1f' % percentages[order[2]] }}%)</span> Gyms in possesion, with <span class="label label-{{ styles[order[2]] }}">{{ prestige[order[2]] }} ({{ '%0.1f' % prestige_percent[order[2]] }}%) prestige</span> total.</p>
         <p>By the way, <span class="label label-default">{{ count[0] }} ({{ '%0.1f' % percentages[0] }}%)</span> Gyms are empty.</p>
