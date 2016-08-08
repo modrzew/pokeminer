@@ -8,6 +8,7 @@ from web import get_args  # pretty handy function, actually
 import config
 import db
 import utils
+from decimal import *
 
 
 app = Flask(__name__, template_folder='templates')
@@ -65,9 +66,11 @@ def get_stats():
             prestige[team] += fort['prestige']
     total_prestige = sum(prestige.values())
     for team in db.Team:
-        percentages[team.value] = count.get(team.value) / len(forts) * 100
+        percentages[team.value] = (
+            Decimal(count.get(team.value)) / Decimal(len(forts)) * 100
+            )
         prestige_percent[team.value] = (
-            prestige.get(team.value) / total_prestige * 100
+            Decimal(prestige.get(team.value)) / Decimal(total_prestige) * 100
         )
         if guardians[team.value]:
             pokemon_id = sorted(
@@ -76,6 +79,8 @@ def get_stats():
                 reverse=True
             )[0]
             top_guardians[team.value] = POKEMON_NAMES[pokemon_id]
+
+    print percentages
     CACHE['generated_at'] = datetime.now()
     CACHE['data'] = {
         'order': sorted(count, key=count.__getitem__, reverse=True),
