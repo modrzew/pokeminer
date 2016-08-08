@@ -79,8 +79,6 @@ def get_stats():
                 reverse=True
             )[0]
             top_guardians[team.value] = POKEMON_NAMES[pokemon_id]
-
-    print percentages
     CACHE['generated_at'] = datetime.now()
     CACHE['data'] = {
         'order': sorted(count, key=count.__getitem__, reverse=True),
