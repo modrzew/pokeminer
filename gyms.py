@@ -8,7 +8,7 @@ from web import get_args  # pretty handy function, actually
 import config
 import db
 import utils
-from decimal import *
+from decimal import Decimal
 
 
 app = Flask(__name__, template_folder='templates')
