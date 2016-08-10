@@ -92,7 +92,9 @@
             var minutes = parseInt(diff / 60);
             var seconds = parseInt(diff - (minutes * 60));
             var expires_at = minutes + 'm ' + seconds + 's';
-            return '<b>#' + item.pokemon_id + ' ' + item.name + '</b> ' + expires_at;
+			var lat = item.lat;
+			var lon = item.lon;
+            return '<b>#' + item.pokemon_id + ' ' + item.name + '</b> ' + expires_at + '<br>' + 'Coordinates: ' + lat + ', ' + lon + '<br>' + '<a href="https://www.google.com/maps/dir//' + lat + ',+' + lon + '/">Directions</a>';
         }
 
         function getOpacity (item) {
