@@ -84,6 +84,7 @@ def get_pokemarkers():
     session = db.Session()
     pokemons = db.get_sightings(session)
     forts = db.get_forts(session)
+    stops = db.get_stops(session)
     session.close()
 
     for pokemon in pokemons:
@@ -113,7 +114,21 @@ def get_pokemarkers():
             'lat': fort['lat'],
             'lon': fort['lon'],
         })
-
+    for stop in stops:
+        if stop['active_pokemon_id'] != 0:
+            pokemon_name = pokemon_names[str(stop['active_pokemon_id'])]
+        else:
+            pokemon_name = 'No Lure'
+        markers.append({
+            'id': 'stop-{}'.format(stop['stop_id']),
+            'sighting_id': stop['id'],
+            'type': 'stop',
+            'lure_expires_timestamp': stop['lure_expires_timestamp_ms'],
+            'pokemon_id': stop['active_pokemon_id'],
+            'pokemon_name': pokemon_name,
+            'lat': stop['lat'],
+            'lon': stop['lon'],            
+        })
     return markers
 
 

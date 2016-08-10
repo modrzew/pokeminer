@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pokeminer - {{ area_name }}</title>
+    <link rel="stylesheet" href="/static/css/leaflet-1.0.0-rc.3.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        .map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+        .my-location {
+            z-index: 1000;
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #fff;
+            background-image: url(/static/img/my-location.png);
+            background-size: 24px 24px;
+            background-position: 4px 4px;
+            background-repeat: no-repeat;
+            text-align: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            cursor: pointer;
+        }
+        .my-location:hover {
+            background-color: #f4f4f4;
+        }
+        .fort-icon {
+            border-radius: 12px;
+            padding: 2px;
+            background: #fff;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+        .leaflet-control-layers-toggle {
+            background-image: url(/static/img/layers.png);
+        }
+    </style>
+</head>
+<body>
+    <h1>Pokeminer is initializing, please wait.</h1>
+
+    <div id="main-map" class="map"></div>
+
+    <a class="my-location"></a>
+
+    <script src="/static/js/jquery-3.1.0.min.js"></script>
+    <script src="/static/js/leaflet-1.0.0-rc.3.min.js"></script>
+    <script>
+        var PokemonIcon = L.Icon.extend({
+            options: {
+                iconSize: [30, 30],
+                popupAnchor: [0, -16]
+            }
+        });
+        var FortIcon = L.Icon.extend({
+            options: {
+                iconSize: [20, 20],
+                popupAnchor: [0, -10],
+                className: 'fort-icon'
+            }
+        });
+		
+		var StopIcon = L.Icon.extend({
+            options: {
+                iconSize: [20, 20],
+                popupAnchor: [0, -10],
+                className: 'fort-icon'
+            }
+        });
+
+        function getMarkers () {
+            return new Promise(function (resolve, reject) {
+                $.get('/data', function (response) {
+                    resolve($.parseJSON(response));
+                });
+            });
+        }
+
+        var markers = {};
+        var overlays = {
+            Pokemon: L.layerGroup([]),
+            Trash: L.layerGroup([]),
+            Gyms: L.layerGroup([]),
+            Workers: L.layerGroup([]),
+			Stops: L.layerGroup([])
+        };
+
+        function getPopupContent (item) {
+            var diff = (item.expires_at - new Date().getTime() / 1000);
+            var minutes = parseInt(diff / 60);
+            var seconds = parseInt(diff - (minutes * 60));
+            var expires_at = minutes + 'm ' + seconds + 's';
+            return '<b>#' + item.pokemon_id + ' ' + item.name + '</b> ' + expires_at;
+        }
+
+        function getOpacity (item) {
+            var diff = (item.expires_at - new Date().getTime() / 1000);
+            if (diff > 600) {
+                return 1;
+            }
+            return 0.5 + diff / 600;
+        }
+
+        function PokemonMarker (raw) {
+            var icon = new PokemonIcon({iconUrl: '/static/icons/' + raw.pokemon_id + '.png'});
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                event.popup.setContent(getPopupContent(event.target.raw));
+                event.target.popupInterval = setInterval(function () {
+                    event.popup.setContent(getPopupContent(event.target.raw));
+                }, 1000);
+            });
+            marker.on('popupclose', function (event) {
+                clearInterval(event.target.popupInterval);
+            });
+            marker.setOpacity(getOpacity(marker.raw));
+            marker.opacityInterval = setInterval(function () {
+                var diff = marker.raw.expires_at - new Date().getTime() / 1000;
+                if (diff > 0) {
+                    marker.setOpacity(getOpacity(marker.raw));
+                } else {
+                    if (marker.raw.trash) {
+                        marker.removeFrom(overlays.Trash);
+                    } else {
+                        marker.removeFrom(overlays.Pokemons);
+                    }
+                    marker.removeFrom(map);
+                    markers[marker.raw.id] = undefined;
+                    clearInterval(marker.opacityInterval);
+                }
+            }, 1000);
+            marker.bindPopup();
+            return marker;
+        }
+
+        function FortMarker (raw) {
+            var icon = new FortIcon({iconUrl: '/static/forts/' + raw.team + '.png'});
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                var pokemonName;
+                if (raw.team === 0) {
+                    event.popup.setContent('An empty Gym!');
+                } else {
+                    event.popup.setContent('Prestige: <b>' + raw.prestige + '</b><br>Guarding Pokemon:<br><b>' + '#' + raw.pokemon_id + ' ' + raw.pokemon_name + '</b>');
+                }
+            });
+            marker.bindPopup();
+            return marker;
+        }
+
+		function StopMarker (raw) {
+			if (raw.pokemon_id > 0)
+			{
+				var icon = new StopIcon({iconUrl: '/static/stops/Great_Ball.png'});
+			}	
+            else
+			{
+				var icon = new StopIcon({iconUrl: '/static/stops/pokeball.png'});
+			}
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                var pokemonName;
+				var diff = (raw.lure_expires_timestamp - new Date().getTime() / 1000);
+				var minutes = parseInt(diff / 60);
+				var seconds = parseInt(diff - (minutes * 60));
+				var expires_at = minutes + 'm ' + seconds + 's';
+                if (raw.pokemon_id === 0) {
+                    event.popup.setContent('No Lure');
+                } else {
+                    event.popup.setContent('Lure expires_at: <b>' + expires_at + '</b><br>Current Pokemon:<br><b>' + '#' + raw.pokemon_id + ' ' + raw.pokemon_name + '</b>');
+                }
+            });
+            marker.bindPopup();
+            return marker;
+        }
+		
+        function addMarkersToMap (data, map) {
+            // Pokemons
+            data.forEach(function (item) {
+                var marker = null;
+                if (item.type === 'pokemon') {
+                    // Already placed? No need to do anything, then
+                    if (item.id in markers) {
+                        return;
+                    }
+                    marker = PokemonMarker(item);
+                    if (item.trash) {
+                        marker.addTo(overlays.Trash);
+                    } else {
+                        marker.addTo(overlays.Pokemon);
+                    }
+				
+                } 
+				else if (item.type === 'stop') {
+					var existing = markers[item.id];
+					if (typeof existing !== 'undefined') 
+					{
+						if (existing.raw.sighting_id === item.sighting_id) 
+						{
+							return;
+						}
+						existing.removeFrom(overlays.Stops);
+						markers[item.id] = undefined;
+					}
+					marker = StopMarker(item);
+					marker.addTo(overlays.Stops);
+				}
+				else {
+                    // No change since last time? Then don't do anything
+                    var existing = markers[item.id];
+                    if (typeof existing !== 'undefined') {
+                        if (existing.raw.sighting_id === item.sighting_id) {
+                            return;
+                        }
+                        existing.removeFrom(overlays.Gyms);
+                        markers[item.id] = undefined;
+                    }
+                    marker = FortMarker(item);
+                    marker.addTo(overlays.Gyms);
+                }
+            });
+        }
+
+        function refresh () {
+            getMarkers().then(function (data) {
+                addMarkersToMap(data, map);
+            });
+        }
+
+        var workersLoaded = false;
+        function loadWorkersLayer () {
+            $.get('/workers_data', function (response) {
+                var data = $.parseJSON(response);
+                var points = [];
+                data.points.forEach(function (raw) {
+                    var point;
+                    if (raw.type == 'worker') {
+                        point = L.marker([raw.lat, raw.lon], {icon: L.icon({iconUrl: '/static/img/marker-icon.png', iconAnchor: [13, 41]})}).bindPopup('Worker ' + raw.worker_no);
+                    } else if (raw.type == 'worker_point') {
+                        point = L.circle([raw.lat, raw.lon], data.scan_radius, {weight: 2}).bindPopup('Worker ' + raw.worker_no + ', point '+ raw.point_no);
+                    }
+                    point.addTo(overlays.Workers);
+                });
+                workersLoaded = true;
+            });
+        }
+
+        var map = L.map('main-map').setView([{{ map_center[0] }}, {{ map_center[1] }}], 13);
+        overlays.Pokemon.addTo(map);
+        var control = L.control.layers(null, overlays).addTo(map);
+        map.on('overlayadd', function (event) {
+            if (event.name === 'Workers' && !workersLoaded) {
+                loadWorkersLayer();
+            }
+        });
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {opacity: 0.5}).addTo(map);
+        map.whenReady(function () {
+            $('.my-location').on('click', function () {
+                map.locate({ enableHighAccurracy: true, setView: true });
+            });
+
+            setInterval(refresh, 30000);
+            refresh();
+        });
+    </script>
+</body>
+</html>

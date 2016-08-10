@@ -4,7 +4,7 @@ import json
 import time
 
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, func, DateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -106,9 +106,37 @@ class FortCache(object):
             params[2] == sighting['guard_pokemon_id']
         )
         return is_the_same
+        
+class StopCache(object):
+    """Simple cache for storing fort sightings"""
+    def __init__(self):
+        self.store = {}
+
+    @staticmethod
+    def _make_key(stop_sighting):
+        return stop_sighting['external_id']
+
+    def add(self, sighting):
+        self.store[self._make_key(sighting)] = (
+            sighting['lure_expires_timestamp_ms'],
+            sighting['encounter_id'],
+            sighting['active_pokemon_id'],
+        )
+
+    def __contains__(self, sighting):
+        params = self.store.get(self._make_key(sighting))
+        if not params:
+            return False
+        is_the_same = (
+            params[0] == sighting['lure_expires_timestamp_ms'] and
+            params[1] == sighting['encounter_id'] and
+            params[2] == sighting['active_pokemon_id']
+        )
+        return is_the_same
 
 SIGHTING_CACHE = SightingCache()
 FORT_CACHE = FortCache()
+STOP_CACHE = StopCache()
 
 
 class Sighting(Base):
@@ -122,7 +150,37 @@ class Sighting(Base):
     lat = Column(String(16), index=True)
     lon = Column(String(16), index=True)
 
+class Stop(Base):
+    __tablename__ = 'stops'
 
+    id = Column(Integer, primary_key=True)
+    external_id = Column(String(64), unique=True)
+    lat = Column(String(16), index=True)
+    lon = Column(String(16), index=True)
+    sightings = relationship(
+        'StopSighting',
+        backref='stop',
+        order_by='StopSighting.last_modified'
+    )
+
+class StopSighting(Base):
+    __tablename__ = 'stop_sightings'
+
+    id = Column(Integer, primary_key=True)
+    stop_id = Column(Integer, ForeignKey('stops.id'))
+    last_modified = Column(Integer)
+    lure_expires_timestamp_ms = Column(Integer)
+    encounter_id = Column(String(32))
+    active_pokemon_id = Column(Integer)
+    sighting_time = Column(DateTime, server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint(
+            'stop_id',
+            'last_modified',
+            name='stop_id_last_modified_unique'
+        ),
+    )
+    
 class Fort(Base):
     __tablename__ = 'forts'
 
@@ -248,6 +306,47 @@ def add_fort_sighting(session, raw_fort):
     else:
         FORT_CACHE.add(raw_fort)
 
+def add_stop_sighting(session, raw_stop):
+    if raw_stop in STOP_CACHE:
+        return
+    # Check if stop exists
+    #logger.info('Logging the stop sighting: ' + raw_stop['lure_expires_timestamp_ms'] + ' - ' + raw_stop['encounter_id'] + ' - ' + raw_stop['active_pokemon_id'])
+    stop = session.query(Stop) \
+        .filter(Stop.external_id == raw_stop['external_id']) \
+        .first()
+    if not stop:
+        stop = Stop(
+            external_id=raw_stop['external_id'],
+            lat=raw_stop['lat'],
+            lon=raw_stop['lon'],
+        )
+        session.add(stop)
+    if stop.id:
+        existing = session.query(StopSighting) \
+            .filter(StopSighting.stop_id == stop.id) \
+            .filter(StopSighting.lure_expires_timestamp_ms == raw_stop['lure_expires_timestamp_ms']) \
+            .filter(StopSighting.encounter_id == str(raw_stop['encounter_id'])) \
+            .filter(StopSighting.active_pokemon_id ==
+                    raw_stop['active_pokemon_id']) \
+            .first()
+        if existing:
+            # Why it's not in cache? It should be there!
+            STOP_CACHE.add(raw_stop)
+            return
+    obj = StopSighting(
+        stop=stop,
+        lure_expires_timestamp_ms=raw_stop['lure_expires_timestamp_ms'],
+        encounter_id=str(raw_stop['encounter_id']),
+        active_pokemon_id=raw_stop['active_pokemon_id'],
+        last_modified=raw_stop['last_modified'],
+    )
+    session.add(obj)
+    try:
+        session.commit()
+    except IntegrityError:  # skip adding stop this time
+        session.rollback()
+    else:
+        STOP_CACHE.add(raw_stop)
 
 def get_sightings(session):
     return session.query(Sighting) \
@@ -257,31 +356,51 @@ def get_sightings(session):
 
 def get_forts(session):
     query = session.execute('''
-        SELECT * FROM (
-            SELECT
-                fs.fort_id,
-                fs.id,
-                fs.team,
-                fs.prestige,
-                fs.guard_pokemon_id,
-                fs.last_modified,
-                f.lat,
-                f.lon
-            FROM fort_sightings fs
-            JOIN forts f ON f.id=fs.fort_id
-            ORDER BY fs.last_modified DESC
-        ) t GROUP BY fort_id
+        
+    SELECT
+        fs.fort_id,
+        fs.id,
+        fs.team,
+        fs.prestige,
+        fs.guard_pokemon_id,
+        fs.last_modified,
+        f.lat,
+        f.lon
+    FROM fort_sightings fs
+	inner join (select max(fs.last_modified) as last_modified, fs.fort_id FROM fort_sightings fs group by fort_id) lfs on lfs.fort_id = fs.fort_id and lfs.last_modified = fs.last_modified
+    inner JOIN forts f ON f.id=fs.fort_id
     ''')
     return query.fetchall()
 
 
+def get_stops(session):
+    query = session.execute('''
+                    SELECT
+                ss.stop_id,
+                ss.id,
+                ss.lure_expires_timestamp_ms,
+                ss.encounter_id,
+                ss.active_pokemon_id,
+                ss.last_modified,
+                s.lat,
+                s.lon
+            FROM stop_sightings ss
+			inner join (SELECT max(id) as maxid, stop_id, max(lure_expires_timestamp_ms) as ltime, max(sighting_time) stime from stop_sightings
+			where dateadd(mi, datediff(mi, getutcdate(), getDate()), dateadd(S, lure_expires_timestamp_ms, '1970-01-01')) > getdate() or lure_expires_timestamp_ms = 0
+group by stop_id) mss on ss.id = mss.maxid
+            JOIN stops s ON s.id=ss.stop_id
+            ORDER BY ss.last_modified DESC
+    ''')
+    return query.fetchall() 
+ 
+    
 def get_session_stats(session):
     query = '''
         SELECT
             MIN(expire_timestamp) ts_min,
             MAX(expire_timestamp) ts_max,
             COUNT(*)
-        FROM `sightings`
+        FROM sightings
         {report_since}
     '''
     min_max_query = session.execute(query.format(
@@ -308,11 +427,11 @@ def get_punch_card(session):
         bigint = 'UNSIGNED'
     query = session.execute('''
         SELECT
-            CAST((expire_timestamp / 300) AS {bigint}) ts_date,
+            CAST((expire_timestamp / 300) AS bigint) as ts_date,
             COUNT(*) how_many
-        FROM `sightings`
+        FROM sightings
         {report_since}
-        GROUP BY ts_date
+        GROUP BY CAST((expire_timestamp / 300) AS bigint)
         ORDER BY ts_date
     '''.format(bigint=bigint, report_since=get_since_query_part()))
     results = query.fetchall()
@@ -326,14 +445,13 @@ def get_punch_card(session):
 
 def get_top_pokemon(session, count=30, order='DESC'):
     query = session.execute('''
-        SELECT
+        SELECT top {count}
             pokemon_id,
             COUNT(*) how_many
         FROM sightings
         {report_since}
         GROUP BY pokemon_id
         ORDER BY how_many {order}
-        LIMIT {count}
     '''.format(order=order, count=count, report_since=get_since_query_part()))
     return query.fetchall()
 
@@ -379,7 +497,7 @@ def get_spawns_per_hour(session, pokemon_id):
     if get_engine_name(session) == 'sqlite':
         ts_hour = 'STRFTIME("%H", expire_timestamp)'
     else:
-        ts_hour = 'HOUR(FROM_UNIXTIME(expire_timestamp))'
+        ts_hour = "datepart(hour,dateadd(mi, -14,dateadd(mi, datediff(mi, getutcdate(), getDate()), dateadd(S, expire_timestamp, '1970-01-01'))))"
     query = session.execute('''
         SELECT
             {ts_hour} AS ts_hour,
@@ -387,7 +505,7 @@ def get_spawns_per_hour(session, pokemon_id):
         FROM sightings
         WHERE pokemon_id = {pokemon_id}
         {report_since}
-        GROUP BY ts_hour
+        GROUP BY {ts_hour}
         ORDER BY ts_hour
     '''.format(
         pokemon_id=pokemon_id,

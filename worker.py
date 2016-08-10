@@ -7,6 +7,7 @@ import random
 import sys
 import threading
 import time
+import pprint
 
 from pgoapi import (
     exceptions as pgoapi_exceptions,
@@ -170,6 +171,7 @@ class Slave(threading.Thread):
             map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
             pokemons = []
             forts = []
+            stops = []
             if map_objects.get('status') == 1:
                 for map_cell in map_objects['map_cells']:
                     for pokemon in map_cell.get('wild_pokemons', []):
@@ -187,6 +189,7 @@ class Slave(threading.Thread):
                         if not fort.get('enabled'):
                             continue
                         if fort.get('type') == 1:  # probably pokestops
+                            stops.append(self.normalize_stop(fort, fort.get('lure_info', fort)))
                             continue
                         forts.append(self.normalize_fort(fort))
             for raw_pokemon in pokemons:
@@ -196,6 +199,8 @@ class Slave(threading.Thread):
             session.commit()
             for raw_fort in forts:
                 db.add_fort_sighting(session, raw_fort)
+            for raw_stop in stops:
+                db.add_stop_sighting(session, raw_stop)
             # Commit is not necessary here, it's done by add_fort_sighting
             logger.info(
                 'Point processed, %d Pokemons and %d forts seen!',
@@ -227,6 +232,7 @@ class Slave(threading.Thread):
 
     @staticmethod
     def normalize_fort(raw):
+        
         return {
             'external_id': raw['id'],
             'lat': raw['latitude'],
@@ -236,7 +242,19 @@ class Slave(threading.Thread):
             'guard_pokemon_id': raw.get('guard_pokemon_id', 0),
             'last_modified': raw['last_modified_timestamp_ms'] / 1000.0,
         }
-
+	
+    @staticmethod
+    def normalize_stop(raw, lure):
+        return {
+            'external_id': raw['id'],
+            'lat': raw['latitude'],
+            'lon': raw['longitude'],
+            'lure_expires_timestamp_ms': lure.get('lure_expires_timestamp_ms', 0) / 1000,
+            'encounter_id': lure.get('encounter_id', 0),
+            'active_pokemon_id': lure.get('active_pokemon_id', 0),
+            'last_modified': raw['last_modified_timestamp_ms'] / 1000.0,
+        }
+	
     @property
     def status(self):
         """Returns status message to be displayed in status screen"""

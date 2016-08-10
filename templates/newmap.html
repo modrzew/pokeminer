@@ -70,6 +70,14 @@
                 className: 'fort-icon'
             }
         });
+		
+		var StopIcon = L.Icon.extend({
+            options: {
+                iconSize: [20, 20],
+                popupAnchor: [0, -10],
+                className: 'fort-icon'
+            }
+        });
 
         function getMarkers () {
             return new Promise(function (resolve, reject) {
@@ -84,7 +92,8 @@
             Pokemon: L.layerGroup([]),
             Trash: L.layerGroup([]),
             Gyms: L.layerGroup([]),
-            Workers: L.layerGroup([])
+            Workers: L.layerGroup([]),
+			Stops: L.layerGroup([])
         };
 
         function getPopupContent (item) {
@@ -154,6 +163,35 @@
             return marker;
         }
 
+		function StopMarker (raw) {
+			if (raw.pokemon_id != 0)
+			{
+				//var icon = new StopIcon({iconUrl: '/static/stops/Great_Ball.png'}); //uncomment this and comment below for pokeball icon
+				var icon = new PokemonIcon({iconUrl: '/static/icons/' + raw.pokemon_id + '.png'});
+			}	
+            else
+			{
+				var icon = new StopIcon({iconUrl: '/static/stops/pokeball.png'});
+			}
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                var pokemonName;
+				var diff = (raw.lure_expires_timestamp - new Date().getTime() / 1000);
+				var minutes = parseInt(diff / 60);
+				var seconds = parseInt(diff - (minutes * 60));
+				var expires_at = minutes + 'm ' + seconds + 's';
+                if (raw.pokemon_id === 0) {
+                    event.popup.setContent('No Lure');
+                } else {
+                    event.popup.setContent('Lure Pokemon expires at: <b>' + expires_at + '</b><br>Current Pokemon:<br><b>' + '#' + raw.pokemon_id + ' ' + raw.pokemon_name + '</b>');
+                }
+            });
+            marker.bindPopup();
+            return marker;
+        }
+		
         function addMarkersToMap (data, map) {
             // Pokemons
             data.forEach(function (item) {
@@ -169,7 +207,23 @@
                     } else {
                         marker.addTo(overlays.Pokemon);
                     }
-                } else {
+				
+                } 
+				else if (item.type === 'stop') {
+					var existing = markers[item.id];
+					if (typeof existing !== 'undefined') 
+					{
+						if (existing.raw.sighting_id === item.sighting_id) 
+						{
+							return;
+						}
+						existing.removeFrom(overlays.Stops);
+						markers[item.id] = undefined;
+					}
+					marker = StopMarker(item);
+					marker.addTo(overlays.Stops);
+				}
+				else {
                     // No change since last time? Then don't do anything
                     var existing = markers[item.id];
                     if (typeof existing !== 'undefined') {
