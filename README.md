@@ -32,9 +32,9 @@ And here are workers together with their area of scan:
 
 ## Setting up
 
-[/u/gprez](https://www.reddit.com/u/gprez) made [a great tutorial on Reddit](https://www.reddit.com/r/pokemongodev/comments/4tz66s/pokeminer_your_individual_pokemon_locations/d5lovb6). Check it out if you're not accustomed with Python applications.
+[/u/gprez](https://www.reddit.com/u/gprez) made [a great tutorial on Reddit](https://www.reddit.com/r/pokemongodev/comments/4tz66s/pokeminer_your_individual_pokemon_locations/d5lovb6). Check it out if you're not accustomed with Python applications. Please note that you'll need Python3 with the new co-routines. Make sure you also have pip3 (pip for python 3).
 
-Create the database by running Python interpreter. Note that if you want more than 10 workers simultaneously running, SQLite is probably not the best choice.
+Create the database by running Python interpreter. Note that if you want more than 10 workers simultaneously running, SQLite is probably not the best choice. Also note that if you decide to switch branches or pull in a new release, you'll have to delete the old db.sqlite file and run these steps again to prevent compatibility issues.
 
 ```py
 $> python
@@ -50,13 +50,13 @@ Copy `config.py.example` to `config.py` and modify as you wish. See [wiki page](
 Run the worker:
 
 ```
-python worker.py
+python3 worker.py
 ```
 
 Optionally run the live map interface and reporting system:
 
 ```
-python web.py --host 127.0.0.1 --port 8000
+python3 web.py --host 127.0.0.1 --port 8000
 ```
 
 ### How many workers do I need?
