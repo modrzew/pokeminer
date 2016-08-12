@@ -227,7 +227,7 @@ class Slave(threading.Thread):
             'encounter_id': raw['encounter_id'],
             'spawn_id': raw['spawn_point_id'],
             'pokemon_id': raw['pokemon_data']['pokemon_id'],
-            'expire_timestamp': (now + raw['time_till_hidden_ms']) / 1000.0,
+            'expire_timestamp': (now + min(900000,raw['time_till_hidden_ms'])) / 1000.0,
             'lat': raw['latitude'],
             'lon': raw['longitude'],
         }
