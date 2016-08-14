@@ -27,3 +27,6 @@ STAGE2 = [94, 139, 141, 149]
 
 REPORT_SINCE = datetime(2016, 7, 29)
 GOOGLE_MAPS_KEY = 's3cr3t'
+
+# Comma-separated list of webhook endpoints. E.g. ['http://webhook1.com', 'http://webhook2.com']
+WEBHOOK_ENDPOINTS = []

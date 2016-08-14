@@ -7,6 +7,9 @@ import random
 import sys
 import threading
 import time
+import requests
+from base64 import b64encode
+import calendar
 
 from pgoapi import (
     exceptions as pgoapi_exceptions,
@@ -196,6 +199,21 @@ class Slave(threading.Thread):
                                 pokemon, map_cell['current_timestamp_ms']
                             )
                         )
+                        # Prepare and send the pokemon data to the webhook listeners
+                        d_t = datetime.utcfromtimestamp(
+                            (pokemon['last_modified_timestamp_ms'] +
+                             pokemon['time_till_hidden_ms']) / 1000.0)
+                        webhook_data = {
+                            'encounter_id': b64encode(str(pokemon['encounter_id'])),
+                            'spawnpoint_id': pokemon['spawn_point_id'],
+                            'pokemon_id': pokemon['pokemon_data']['pokemon_id'],
+                            'latitude': pokemon['latitude'],
+                            'longitude': pokemon['longitude'],
+                            'disappear_time': calendar.timegm(d_t.timetuple()),
+                            'last_modified_time': pokemon['last_modified_timestamp_ms'],
+                            'time_until_hidden_ms': pokemon['time_till_hidden_ms']
+                        }
+                        self.send_to_webhook('pokemon', webhook_data)
                     for fort in map_cell.get('forts', []):
                         if not fort.get('enabled'):
                             continue
@@ -225,6 +243,25 @@ class Slave(threading.Thread):
         session.close()
         if self.seen_per_cycle == 0:
             self.error_code = 'NO POKEMON'
+
+    @staticmethod
+    def send_to_webhook(message_type, message):
+        """Sends the Pokemon data to each subscribing webhook endpoit"""
+        data = {
+            'type': message_type,
+            'message': message
+        }
+
+        if config.WEBHOOK_ENDPOINTS:
+            webhooks = config.WEBHOOK_ENDPOINTS
+
+            for w in webhooks:
+                try:
+                    requests.post(w, json=data, timeout=(None, 1))
+                except requests.exceptions.ReadTimeout:
+                    logger.exception('Could not receive response from webhook')
+                except requests.exceptions.RequestException as e:
+                    logger.exception(e)
 
     @staticmethod
     def normalize_pokemon(raw, now):
