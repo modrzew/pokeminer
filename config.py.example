@@ -27,3 +27,5 @@ STAGE2 = [94, 139, 141, 149]
 
 REPORT_SINCE = datetime(2016, 7, 29)
 GOOGLE_MAPS_KEY = 's3cr3t'
+
+WORKER_LOG_PATH = 'worker.log'

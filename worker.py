@@ -30,6 +30,7 @@ REQUIRED_SETTINGS = (
     'ACCOUNTS',
     'SCAN_RADIUS',
     'SCAN_DELAY',
+    'WORKER_LOG_PATH',
 )
 for setting_name in REQUIRED_SETTINGS:
     if not hasattr(config, setting_name):
@@ -44,7 +45,7 @@ class CannotProcessStep(Exception):
     """Raised when servers are too busy"""
 
 
-def configure_logger(filename='worker.log'):
+def configure_logger(filename=config.WORKER_LOG_PATH):
     logging.basicConfig(
         filename=filename,
         format=(
@@ -380,7 +381,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     if args.status_bar:
-        configure_logger(filename='worker.log')
+        configure_logger(filename=config.WORKER_LOG_PATH)
         logger.info('-' * 30)
         logger.info('Starting up!')
     else:
