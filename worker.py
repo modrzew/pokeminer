@@ -161,6 +161,7 @@ class Slave(threading.Thread):
         self.step = 0
         for i, point in enumerate(self.points):
             if not self.running:
+                session.close()
                 return
             logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
@@ -173,6 +174,7 @@ class Slave(threading.Thread):
             )
             logger.debug('Response: %s', response_dict)
             if response_dict is False:
+                session.close()
                 raise CannotProcessStep
             map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
             pokemons = []
