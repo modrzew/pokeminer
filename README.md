@@ -34,7 +34,7 @@ And here are workers together with their area of scan:
 
 [/u/gprez](https://www.reddit.com/u/gprez) made [a great tutorial on Reddit](https://www.reddit.com/r/pokemongodev/comments/4tz66s/pokeminer_your_individual_pokemon_locations/d5lovb6). Check it out if you're not accustomed with Python applications.
 
-Note: Pokeminer works best with Python 3.5. Python 2.7 is supported **for time being** and I plan on moving away from it. Seriously, it's 2016, Python 2.7 hasn't been developed for 6 years, why don't you upgrade already?
+**Note**: Pokeminer works only with Python 3.5. Python 2.7 is **not supported** and not compatible at all since I moved from threads to coroutines. Seriously, it's 2016, Python 2.7 hasn't been developed for 6 years, why don't you upgrade already?
 
 Create the database by running Python interpreter. Note that if you want more than 10 workers simultaneously running, SQLite is probably not the best choice.
 
