@@ -51,7 +51,7 @@ def configure_logger(filename='worker.log'):
     logging.basicConfig(
         filename=filename,
         format=(
-            '[%(asctime)s][%(threadName)10s][%(levelname)8s][L%(lineno)4d] '
+            '[%(asctime)s][%(threadName)10s][%(levelname)5s][%(module)8s] '
             '%(message)s'
         ),
         style='%',
@@ -70,18 +70,23 @@ class Slave(threading.Thread):
         name=None,
         worker_no=None,
         points=None,
+        step=None,
+        cycle = None,
+        seen_per_cycle=None,
     ):
         super(Slave, self).__init__(group, target, name)
         self.worker_no = worker_no
         local_data.worker_no = worker_no
         self.points = points
         self.count_points = len(self.points)
-        self.step = 0
-        self.cycle = 0
-        self.seen_per_cycle = 0
+        self.step = step
+        self.cycle = cycle
+        self.seen_per_cycle = seen_per_cycle
         self.total_seen = 0
+        self.banned_count = 0
         self.error_code = None
         self.running = True
+        self.active = True
         center = self.points[0]
         self.api = PGoApi()
         self.api.activate_signature(config.ENCRYPT_PATH)
@@ -104,6 +109,7 @@ class Slave(threading.Thread):
                     username=username,
                     password=password,
                     provider=service,
+                    app_simulation=False
                 )
                 if not loginsuccess:
                     self.error_code = 'LOGIN FAIL'
@@ -134,7 +140,7 @@ class Slave(threading.Thread):
                 self.restart()
                 return
             break
-        while self.cycle <= config.CYCLES_PER_WORKER:
+        while self.active and self.cycle <= config.CYCLES_PER_WORKER:
             if not self.running:
                 self.restart()
                 return
@@ -142,7 +148,6 @@ class Slave(threading.Thread):
                 self.main()
             except MalformedResponse:
                 logger.warning('Malformed response received!')
-                self.error_code = 'RESTART'
                 self.restart()
                 return
             except BannedAccount:
@@ -157,6 +162,8 @@ class Slave(threading.Thread):
             if not self.running:
                 self.restart()
                 return
+            if not self.active:
+                return
             self.cycle += 1
             if self.cycle <= config.CYCLES_PER_WORKER:
                 logger.info('Going to sleep for a bit')
@@ -166,36 +173,42 @@ class Slave(threading.Thread):
                 logger.info('AWAKEN MY MASTERS')
                 self.running = True
                 self.error_code = None
-        self.error_code = 'RESTART'
-        self.restart()
+            else:
+                self.error_code = 'RESTART'
+                self.restart()
+        logger.info('Outside cycle while loop, thread shutdown')
+        return
+
 
     def main(self):
         """Heart of the worker - goes over each point and reports sightings"""
         session = db.Session()
-        self.seen_per_cycle = 0
-        self.step = 0
-        for i, point in enumerate(self.points):
+
+        while self.step <  self.count_points:
+            point = self.points[self.step]			
             if not self.running:
                 return
-            logger.info('Visiting point %d (%s %s)', i, point[0], point[1])
+            if not self.active:
+                return
+            logger.info('Visiting point %d (%s %s)', self.step, point[0], point[1])
             self.api.set_position(point[0], point[1], 0)
-            cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1])
+            cell_ids = pgoapi_utils.get_cell_ids(point[0], point[1],500)
             self.api.set_position(point[0], point[1], 100)
             response_dict = self.api.get_map_objects(
                 latitude=pgoapi_utils.f2i(point[0]),
                 longitude=pgoapi_utils.f2i(point[1]),
                 cell_id=cell_ids
             )
-            if not isinstance(response_dict, dict):
-                logger.warning('Response: %s', response_dict)
-                raise MalformedResponse
+            #use try-except block with TypeError to find if response is None or str then simply continue to next point
+            try:
+                map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
+            except TypeError as e:
+                logger.exception(e)
+                self.banned_count += 1 #shutdown if keep get TypeError
+                continue
             if response_dict['status_code'] == 3:
                 logger.warning('Account banned')
                 raise BannedAccount
-            responses = response_dict.get('responses')
-            if not responses:
-                logger.warning('Response: %s', response_dict)
-                raise MalformedResponse
             map_objects = response_dict['responses'].get('GET_MAP_OBJECTS', {})
             pokemons = []
             forts = []
@@ -237,6 +250,14 @@ class Slave(threading.Thread):
                 len(pokemons),
                 len(forts),
             )
+			
+			#banned posibility count
+            if self.banned_count >= 0:
+                if len(forts) == 0:
+                    self.banned_count += 1
+                    logger.info('banned_count : %d', self.banned_count)  
+                else: self.banned_count -= 1
+			
             # Clear error code and let know that there are Pokemon
             if self.error_code and self.seen_per_cycle:
                 self.error_code = None
@@ -290,8 +311,14 @@ class Slave(threading.Thread):
 
     def restart(self, sleep_min=5, sleep_max=20):
         """Sleeps for a bit, then restarts"""
+		
+        if self.error_code == 'RESTART':
+            self.cycle = 1
+            self.step = 0
+            self.seen_per_cycle = 0
+			
         time.sleep(random.randint(sleep_min, sleep_max))
-        start_worker(self.worker_no, self.points)
+        start_worker(self.worker_no, self.points, self.step, self.cycle, self.seen_per_cycle)
 
     def kill(self):
         """Marks worker as not running
@@ -304,8 +331,12 @@ class Slave(threading.Thread):
     def disable(self):
         """Marks worker as disabled"""
         self.error_code = 'DISABLED'
-        self.running = False
-
+        self.active = False
+		
+    def shutdown(self):
+        """Marks worker as shutdown"""
+        self.error_code = 'SHUTDOWN'
+        self.active = False
 
 def get_status_message(workers, count, start_time, points_stats):
     messages = [workers[i].status.ljust(20) for i in range(count)]
@@ -330,12 +361,15 @@ def get_status_message(workers, count, start_time, points_stats):
     return '\n'.join(output)
 
 
-def start_worker(worker_no, points):
+def start_worker(worker_no, points,step=0,cycle=1,seen_per_cycle=0):
     logger.info('Worker (re)starting up!')
     worker = Slave(
         name='worker-%d' % worker_no,
         worker_no=worker_no,
-        points=points
+        points=points,
+        step = step,
+        seen_per_cycle = seen_per_cycle,
+        cycle = cycle
     )
     if (worker_no not in config.DISABLE_WORKERS):
         worker.daemon = True
@@ -370,13 +404,17 @@ def spawn_workers(workers, status_bar=True):
             db.SIGHTING_CACHE.clean_expired()
             last_cleaned_cache = now
         # Check up on workers
-        if now - last_workers_checked > (5 * 60):
-            # Kill those not doing anything
+        if now - last_workers_checked > (3 * 60):
+            # Kill those not doing anything or shutdown if get banned
             for worker, total_seen in workers_check:
                 if not worker.running:
                     continue
-                if worker.total_seen <= total_seen:
+                if not worker.active:
+                    continue
+                if worker.total_seen <= total_seen and worker.banned_count == 0:
                     worker.kill()
+                if worker.banned_count >= 5:
+                    worker.shutdown()
             # Prepare new list
             workers_check = [
                 (worker, worker.total_seen) for worker in workers.values()
