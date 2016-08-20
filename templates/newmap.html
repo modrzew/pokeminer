@@ -94,7 +94,7 @@
             var expires_at = minutes + 'm ' + seconds + 's';
             var lat = item.lat;
             var lon = item.lon;
-            return '<center><b>#' + item.pokemon_id + ' ' + item.name + '</b> ' + expires_at + '<br>' + '<a href="https://www.google.com/maps/dir/' + lat + ',+' + lon + '/" target="_blank">Directions</a></center>';
+            return '<center><b>#' + item.pokemon_id + ' ' + item.name + '</b> ' + expires_at + '<br>' + '<a href="https://www.google.com/maps/dir//' + lat + ',+' + lon + '/" target="_blank">Directions</a></center>';
         }
 
         function getOpacity (item) {
