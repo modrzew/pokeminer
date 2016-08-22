@@ -4,15 +4,18 @@ from datetime import datetime
 DB_ENGINE = 'sqlite:///db.sqlite'
 ENCRYPT_PATH = './libencrypt.so'
 
-AREA_NAME = u'Wrocław'
+AREA_NAME = 'Honolulu,HI'
 LANGUAGE = 'EN'  # ISO 639-1 codes EN, DE, FR, and ZH currently supported.
-MAP_START = (12.3456, 34.5678)
-MAP_END = (13.4567, 35.6789)
-GRID = (2, 2)  # row, column
+MAP_START = [(21.318211, -157.862556),(21.261988, -157.822416),(21.271774, -157.806483),(21.282394, -157.848757),(21.362364, -157.940002),(21.334177, -157.888227),(21.302450, -157.820387)]
+MAP_END = [(21.288576, -157.826917),(21.284586, -157.813896),(21.282170, -157.782839),(21.288562, -157.838657),(21.373704, -157.928201),(21.315106, -157.866114),(21.295714, -157.814181)]
+GRID = [(3, 3),(3,1),(1,3),(1,1),(1,1),(2,2),(1,1)]  # row, column
 DISABLE_WORKERS = []
 CYCLES_PER_WORKER = 3
 SCAN_DELAY = 10  # seconds
 PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
+
+LAT_GAIN = 0.001
+LON_GAIN = 0.0015
 
 SCAN_RADIUS = 70  # metres
 

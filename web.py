@@ -124,7 +124,7 @@ def get_worker_markers():
     points = utils.get_points_per_worker()
     # Worker start points
     for worker_no, worker_points in enumerate(points):
-        coords = utils.get_start_coords(worker_no)
+        coords = utils.get_start_coords(worker_points)
         if (worker_no not in config.DISABLE_WORKERS):
             markers.append({
                 'lat': coords[0],
