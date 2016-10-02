@@ -462,8 +462,8 @@ def get_spawns_per_minute(session, pokemon_id=None):
     results = [[] for x in range(0,60*24)]
     for elem in query.fetchall():
         if elem['ts_hour'] and elem['ts_minute']:
-            hour = elem['ts_hour']
-            minute = elem['ts_minute']
+            hour = int(elem['ts_hour'])
+            minute = int(elem['ts_minute'])
             results[hour*60+minute].append({
                 'lat': float(elem['lat']),
                 'lng': float(elem['lon']),
