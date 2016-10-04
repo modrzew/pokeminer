@@ -110,6 +110,18 @@ Gyms statistics server is in a separate file, because it's intended to be shared
 
 [![](http://i.imgur.com/1098HkEm.png)](http://i.imgur.com/1098HkE.png)
 
+### Creating Heatmaps
+
+To create simple heatmaps follow these steps:
+
+1. Follow the steps [here](https://github.com/pbugnion/gmaps#installation) to set up Jupyter and gmaps
+2. Fire up the IPythonNotebook example
+3. Enter your gmaps API key
+4. Copy the db.sqlite file next to the notebook
+5. Execute the commands in the Notebook one after another by pressing SHIFT+ENTER
+6. ...
+7. Profit
+
 ## License
 
 See [LICENSE](LICENSE).
