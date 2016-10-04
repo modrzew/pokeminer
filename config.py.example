@@ -16,6 +16,12 @@ PROXIES = None  # Insert dictionary with 'http' and 'https' keys to enable
 
 SCAN_RADIUS = 70  # metres
 
+
+# Higher value, fewer scanpoints are necessary, however there's obviously
+# a lower cap and the runtime increases exponentially, so don't set it
+# much higher
+SAMPLES_PER_POINT = 5 
+
 ACCOUNTS = [
     ('ash_ketchum', 'pik4chu', 'ptc'),
     ('ziemniak_kalafior', 'ogorek', 'google'),

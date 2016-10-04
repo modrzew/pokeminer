@@ -9,3 +9,6 @@ werkzeug==0.11.10
 sqlalchemy==1.0.14
 -e git+https://github.com/keyphact/pgoapi.git@39ea20d31b770dd7bc83180d60283e171090e16d#egg=pgoapi
 enum34==1.1.6
+intervaltree==2.1.0
+numpy==1.11.1
+scipy==0.18.0

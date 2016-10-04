@@ -203,7 +203,18 @@
                     if (raw.type == 'worker') {
                         point = L.marker([raw.lat, raw.lon], {icon: L.icon({iconUrl: '/static/img/marker-icon.png', iconAnchor: [13, 41]})}).bindPopup('Worker ' + raw.worker_no);
                     } else if (raw.type == 'worker_point') {
-                        point = L.circle([raw.lat, raw.lon], data.scan_radius, {weight: 2}).bindPopup('Worker ' + raw.worker_no + ', point '+ raw.point_no);
+                        var circleColor;
+                        switch(raw.worker_no % 3){
+                            case 0:
+                                circleColor = 'red'
+                                break;
+                            case 1:
+                                circleColor = 'green'
+                                break;
+                            default:
+                                circleColor = 'blue'
+                        }
+                        point = L.circle([raw.lat, raw.lon], data.scan_radius, {weight: 2, color: circleColor}).bindPopup('Worker ' + raw.worker_no + ', point '+ raw.point_no);
                     }
                     point.addTo(overlays.Workers);
                 });
