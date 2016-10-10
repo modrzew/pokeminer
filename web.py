@@ -2,6 +2,7 @@
 from datetime import datetime
 import argparse
 import json
+import os
 
 import requests
 from flask import Flask, request, render_template
@@ -60,6 +61,14 @@ app = Flask(__name__, template_folder='templates')
 def pokemon_data():
     return json.dumps(get_pokemarkers())
 
+@app.route('/spawn_data')
+def spawn_data():
+    return json.dumps(get_spawnmarkers())
+
+@app.route('/biome_data')
+def biome_data():
+    return json.dumps(get_biomecells())
+
 
 @app.route('/workers_data')
 def workers_data():
@@ -68,6 +77,30 @@ def workers_data():
         'scan_radius': config.SCAN_RADIUS,
     })
 
+@app.route('/biome')
+def biomes_main():
+    map_center = utils.get_map_center()
+    return render_template(
+                           'biomemap.html',
+                           area_name=config.AREA_NAME,
+                           map_center=map_center,
+                           )
+
+def get_spawnmarkers():
+    if(os.path.exists('spawnmarkers.json')):
+        json_data=open('spawnmarkers.json').read()
+        spawnmarkers = json.loads(json_data)
+        return spawnmarkers
+    else:
+        return
+
+def get_biomecells():
+    if(os.path.exists('biomecells.json')):
+        json_data=open('biomecells.json').read()
+        biomecells = json.loads(json_data)
+        return biomecells
+    else:
+        return
 
 @app.route('/')
 def fullmap():

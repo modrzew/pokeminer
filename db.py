@@ -174,6 +174,14 @@ def get_since_query_part(where=True):
         )
     return ''
 
+def get_sum_poke_query_part():
+    """Returns sum() part of query computing counts for different pokemons"""
+    
+    s = ''
+    for ipoke in xrange(1,152):
+        s = s + 'sum(case when pokemon_id = ' + str(ipoke) + ' then 1 else 0 end) AS poke' + str(ipoke) + ',\n'
+    return s
+
 
 def add_sighting(session, pokemon):
     # Check if there isn't the same entry already
@@ -251,6 +259,27 @@ def get_sightings(session):
         .filter(Sighting.expire_timestamp > time.time()) \
         .all()
 
+
+def get_spawnpoints(session):
+    result = [] # pokemon_id, COUNT(*) as frequency
+    #COUNT(*) AS spawnnumber
+    
+    query = '''
+        SELECT 
+            s.lat,
+            s.lon,
+            {sum_poke}
+            COUNT(*) AS spawnnumber
+        FROM `sightings` s
+        {report_since}
+        GROUP BY lat,lon
+        HAVING COUNT(*) > 50
+        '''
+            
+    return session.execute(query.format(
+        report_since=get_since_query_part(),
+        sum_poke=get_sum_poke_query_part()
+    ))
 
 def get_forts(session):
     if get_engine_name(session) == 'sqlite':

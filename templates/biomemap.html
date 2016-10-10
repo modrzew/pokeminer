@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pokeminer - {{ area_name }}</title>
+    <link rel="stylesheet" href="/static/css/leaflet-1.0.0-rc.3.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        .map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+        .my-location {
+            z-index: 1000;
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #fff;
+            background-image: url(/static/img/my-location.png);
+            background-size: 24px 24px;
+            background-position: 4px 4px;
+            background-repeat: no-repeat;
+            text-align: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            cursor: pointer;
+        }
+        .my-location:hover {
+            background-color: #f4f4f4;
+        }
+        .leaflet-control-layers-toggle {
+            background-image: url(/static/img/layers.png);
+        }
+    </style>
+</head>
+<body>
+    <h1>Pokeminer is initializing, please wait.</h1>
+
+    <div id="main-map" class="map"></div>
+
+    <a class="my-location"></a>
+
+    <script src="/static/js/jquery-3.1.0.min.js"></script>
+    <script src="/static/js/leaflet-1.0.0-rc.3.min.js"></script>
+    <script>
+        var BiomeIcon = L.Icon.extend({
+            options: {
+                iconSize: [30, 30],
+                popupAnchor: [0, -16]
+            }
+        });
+
+        function getMarkers () {
+            return new Promise(function (resolve, reject) {
+                $.get('/spawn_data', function (response) {
+                    resolve($.parseJSON(response));
+                });
+            });
+        }
+
+        function getCells () {
+            return new Promise(function (resolve, reject) {
+                $.get('/biome_data', function (response) {
+                    resolve($.parseJSON(response));
+                });
+            });
+        }
+
+        var markers = {};
+        var cells = {};
+        var overlays = {
+            Nests: L.layerGroup([]),
+            Biomes: L.layerGroup([]),
+            Macrobiomes: L.layerGroup([]),
+        };
+
+        function getPopupContent (item) {
+            var biomes = '<b>Biomes:</b> ';
+            for (i = 0; i < item.biome.length; i++) {
+            	biomes += item.biome[i];
+            	if(i<item.biome.length-1)
+            		biomes += ', '
+            }
+            var nests = '<b>Nests:</b> ';
+            for (i = 0; i < item.nest.length; i++) {
+            	nests += item.nest[i];
+            	if(i<item.nest.length-1)
+            		nests += ', '
+            }
+            var macrobiomes = '<b>Macrobiomes:</b> ';
+            for (i = 0; i < item.macrobiome.length; i++) {
+            	macrobiomes += item.macrobiome[i];
+            	if(i<item.macrobiome.length-1)
+            		macrobiomes += ', '
+            }
+            return biomes + '<br>' + nests + '<br> ' + macrobiomes;
+        }
+
+
+        function NestMarker (raw) {
+            var icon = new BiomeIcon({iconUrl: '/static/icons/' + raw.nest_id + '.png'});
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                event.popup.setContent(getPopupContent(event.target.raw));
+            });
+            marker.bindPopup();
+            return marker;
+        }
+
+        function WaterMarker (raw) {
+            var icon = new BiomeIcon({iconUrl: '/static/icons/water.png', iconSize: [8, 8], iconAnchor: [4, 4]});
+            var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
+            marker.raw = raw;
+            markers[raw.id] = marker;
+            marker.on('popupopen',function popupopen (event) {
+                event.popup.setContent(getPopupContent(event.target.raw));
+            });
+            marker.bindPopup();
+            return marker;
+        }
+
+        function BiomeCell (raw,biome) {
+            var latlng = [
+                L.latLng(raw.vertices[0][0],raw.vertices[0][1]),
+                L.latLng(raw.vertices[1][0],raw.vertices[1][1]),
+                L.latLng(raw.vertices[2][0],raw.vertices[2][1]),
+                L.latLng(raw.vertices[3][0],raw.vertices[3][1]),
+            ];  
+            var color = '';
+            switch(biome){
+                case 'normal':
+                    color = '#cccccc';
+                    break;
+                case 'bug':
+                    color = '#ace600';
+                    break;
+                case 'psychic':
+                    color = '#993399';
+                    break;
+            }
+            var cell = L.polygon(latlng, { color: color, opacity: 0.3});
+            cell.raw = raw;
+            cells[raw.id] = cell;
+            //marker.on('popupopen',function popupopen (event) {
+                //event.popup.setContent(getPopupContent(event.target.raw));
+            //});
+            //marker.bindPopup();
+            return cell;
+        }
+
+        function addMarkersToMap (data, map) {
+            // spawnpoints
+            data.forEach(function (item) {
+                var marker = null;
+                
+                if (item.nest.length>0) {
+                	marker = NestMarker(item);
+                    marker.addTo(overlays.Nests);
+                }
+                if (item.biome.length>0) {
+                    if(item.biome.indexOf('water')>-1) {
+                        marker = WaterMarker(item);
+                        marker.addTo(overlays.Biomes);
+                    }
+                }
+                if (item.macrobiome.length>0) {
+                    //marker.addTo(overlays.Macrobiomes);
+                }
+            });
+        }
+
+        function addCellsToMap (data, map) {
+            // biome cells
+            data.forEach(function (item) {
+                var cell = null;
+
+                if (item.biome.indexOf('bug')>-1) {
+                    cell = BiomeCell(item,'bug')
+                    cell.addTo(overlays.Biomes);
+                }
+                if (item.biome.indexOf('normal')>-1) {
+                    cell = BiomeCell(item,'normal')
+                    cell.addTo(overlays.Biomes);
+                }
+                if (item.biome.indexOf('psychic')>-1) {
+                    cell = BiomeCell(item,'psychic')
+                    cell.addTo(overlays.Biomes);
+                }
+            });
+        }
+
+        function refresh () {
+            getMarkers().then(function (data) {
+                addMarkersToMap(data, map);
+            });
+            getCells().then(function (data) {
+                addCellsToMap(data, map);
+            });
+        }
+
+        var map = L.map('main-map').setView([{{ map_center[0] }}, {{ map_center[1] }}], 13);
+        overlays.Nests.addTo(map);
+        var control = L.control.layers(null, overlays).addTo(map);
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {opacity: 0.5}).addTo(map);
+        map.whenReady(function () {
+            $('.my-location').on('click', function () {
+                map.locate({ enableHighAccurracy: true, setView: true });
+            });
+
+            refresh();
+        });
+    </script>
+</body>
+</html>

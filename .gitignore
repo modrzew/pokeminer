@@ -7,3 +7,16 @@ templates/footer.html
 *.so
 *.dll
 *.dylib
+
+locs.txt
+
+rates.txt
+
+spawnmarkers.json
+
+src/pgoapi/
+
+src/pip-delete-this-directory.txt
+
+
+biomecells.json
