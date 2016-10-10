@@ -30,3 +30,9 @@ REPORT_SINCE = datetime(2016, 7, 29)
 GOOGLE_MAPS_KEY = 's3cr3t'
 MAP_PROVIDER_URL = '//{s}.tile.osm.org/{z}/{x}/{y}.png'
 MAP_PROVIDER_ATTRIBUTION = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+
+#Discord stuff required if using discord notifications
+DISCORD_APP_ID = 'secret'
+DISCORD_TOKEN = 'secret'
+DISCORD_CHANNELS = ['id',] #List of channel id's the bot should post to
+DISCORD_UPDATE_INTERVAL = 2 #Time in minutes between checks for new sightings
